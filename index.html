@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة الاختبارات التفاعلية</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc;
+        }
+        .custom-gradient {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- Navbar -->
+    <nav class="custom-gradient text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3 space-x-reverse cursor-pointer" onclick="navigateTo('feed')">
+                <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-square-poll-vertical text-amber-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-wide">اختباراتي</h1>
+                    <p class="text-xs text-indigo-200">اصنع وتحدى أصدقائك</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <button onclick="navigateTo('feed')" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-semibold transition">
+                    <i class="fa-solid fa-globe ml-1"></i> جميع الاختبارات
+                </button>
+                <button onclick="startCreateFlow()" class="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold text-sm shadow transition">
+                    <i class="fa-solid fa-plus ml-1"></i> إنشاء اختبار
+                </button>
+                <div id="userBadge" class="hidden items-center bg-black/20 px-3 py-1 rounded-full text-xs">
+                    <i class="fa-solid fa-user-check text-green-400 ml-1.5"></i>
+                    <span id="navUserName">مستخدم</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-4 py-8 flex-grow w-full">
+
+        <!-- Toast Notifications -->
+        <div id="toast" class="fixed bottom-5 left-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-3 space-x-reverse">
+            <i id="toastIcon" class="fa-solid fa-circle-info text-indigo-400"></i>
+            <span id="toastMessage" class="text-sm font-semibold">تنبيه</span>
+        </div>
+
+        <!-- 0. Login Modal / Overlay (If required) -->
+        <div id="loginOverlay" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
+                <div class="w-16 h-16 custom-gradient text-white rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-2">تسجيل الدخول مطلوب</h2>
+                <p class="text-slate-600 text-sm mb-6">يرجى تسجيل الدخول لحفظ اختباراتك والتمكن من الوصول إليها في أي وقت ومن أي جهاز.</p>
+                
+                <button onclick="handleGoogleSignIn()" class="w-full py-3 px-4 border border-slate-300 rounded-xl flex items-center justify-center space-x-3 space-x-reverse hover:bg-slate-50 transition shadow-sm font-semibold mb-3">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">
+                    <span>الدخول بـ Google</span>
+                </button>
+                
+                <button onclick="handleAnonymousSignIn()" class="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition text-sm font-semibold">
+                    دخول سريع كمؤلف مجهول
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW 1: WELCOME SCREEN (المتابعة) -->
+        <div id="view-welcome" class="view-step text-center py-12 glass-card rounded-3xl p-8 shadow-xl border border-slate-100">
+            <div class="w-24 h-24 custom-gradient text-white rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-lg shadow-indigo-200">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">أهلاً بك في صانع الاختبارات السريعة!</h1>
+            <p class="text-slate-600 max-w-lg mx-auto text-base md:text-lg mb-8 leading-relaxed">
+                يمكنك الآن إنشاء اختبارك الخاص بأسئلة تفاعلية ومشاركته مع أي شخص. سيتم حفظ كافة الاختبارات ليتحدّاك بها الآخرون!
+            </p>
+            <button onclick="startWizard()" class="custom-gradient text-white font-bold text-lg px-10 py-4 rounded-2xl shadow-lg hover:opacity-95 transform hover:-translate-y-0.5 transition">
+                المتابعة لإنشاء اختبار <i class="fa-solid fa-arrow-left mr-2"></i>
+            </button>
+        </div>
+
+        <!-- VIEW 2: AUTHOR NAME & QUIZ TITLE -->
+        <div id="view-step1" class="view-step hidden glass-card rounded-3xl p-6 md:p-8 shadow-xl border border-slate-100">
+            <div class="mb-6 flex items-center justify-between border-b pb-4">
+                <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">الخطوة 1 من 3</span>
+                <span class="text-slate-400 text-sm"><i class="fa-regular fa-user"></i> البيانات الأساسية</span>
+            </div>
+
+            <h2 class="text-2xl font-bold mb-6 text-slate-900">أدخل معلومات الاختبار</h2>
+
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold mb-2 text-slate-700">اسمك (صانع الاختبار)</label>
+                    <input type="text" id="inputAuthorName" placeholder="مثال: أحمد علي" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-2 text-slate-700">عنوان/موضوع الاختبار</label>
+                    <input type="text" id="inputQuizTitle" placeholder="مثال: اختبار معلومات عامة عن الرياضة" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                    <p class="text-xs text-slate-500 mt-1">سيظهر هذا الاسم في البحث والعيان لجميع مستخدمي المنصة.</p>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-between">
+                <button onclick="navigateTo('welcome')" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 font-semibold">إلغاء</button>
+                <button onclick="nextToStep2()" class="custom-gradient text-white px-8 py-2.5 rounded-xl font-bold shadow hover:opacity-95">المتابعة <i class="fa-solid fa-arrow-left mr-2"></i></button>
+            </div>
+        </div>
+
+        <!-- VIEW 3: NUMBER OF QUESTIONS -->
+        <div id="view-step2" class="view-step hidden glass-card rounded-3xl p-6 md:p-8 shadow-xl border border-slate-100">
+            <div class="mb-6 flex items-center justify-between border-b pb-4">
+                <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">الخطوة 2 من 3</span>
+                <span class="text-slate-400 text-sm"><i class="fa-solid fa-list-ol"></i> عدد الأسئلة</span>
+            </div>
+
+            <h2 class="text-2xl font-bold mb-2 text-slate-900">كم عدد الأسئلة التي تريد إضافتها؟</h2>
+            <p class="text-slate-500 text-sm mb-6">اختر عدد الأسئلة التي ترغب بإنشائها لهذا الاختبار.</p>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <button onclick="setQuestionCount(3)" class="count-btn border-2 border-indigo-200 hover:border-indigo-600 bg-white hover:bg-indigo-50 p-4 rounded-2xl text-center transition group">
+                    <span class="text-2xl font-extrabold text-indigo-600 block group-hover:scale-110 transition">3</span>
+                    <span class="text-xs text-slate-500">أسئلة</span>
+                </button>
+                <button onclick="setQuestionCount(5)" class="count-btn border-2 border-indigo-200 hover:border-indigo-600 bg-white hover:bg-indigo-50 p-4 rounded-2xl text-center transition group">
+                    <span class="text-2xl font-extrabold text-indigo-600 block group-hover:scale-110 transition">5</span>
+                    <span class="text-xs text-slate-500">أسئلة</span>
+                </button>
+                <button onclick="setQuestionCount(10)" class="count-btn border-2 border-indigo-200 hover:border-indigo-600 bg-white hover:bg-indigo-50 p-4 rounded-2xl text-center transition group">
+                    <span class="text-2xl font-extrabold text-indigo-600 block group-hover:scale-110 transition">10</span>
+                    <span class="text-xs text-slate-500">أسئلة</span>
+                </button>
+                <button onclick="showCustomCountInput()" class="count-btn border-2 border-slate-200 hover:border-slate-400 bg-white p-4 rounded-2xl text-center transition">
+                    <span class="text-2xl font-extrabold text-slate-600 block"><i class="fa-solid fa-pen"></i></span>
+                    <span class="text-xs text-slate-500">مخصص</span>
+                </button>
+            </div>
+
+            <div id="customCountDiv" class="hidden mb-6 bg-slate-50 p-4 rounded-2xl border">
+                <label class="block text-sm font-semibold mb-2">أدخل العدد المخصص (1 - 20):</label>
+                <input type="number" id="inputCustomCount" min="1" max="20" value="4" class="w-full px-4 py-2 rounded-xl border outline-none">
+            </div>
+
+            <div class="mt-8 flex justify-between">
+                <button onclick="navigateTo('step1')" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 font-semibold">السابق</button>
+                <button onclick="startQuestionsBuilder()" class="custom-gradient text-white px-8 py-2.5 rounded-xl font-bold shadow hover:opacity-95">بدء إدخال الأسئلة <i class="fa-solid fa-arrow-left mr-2"></i></button>
+            </div>
+        </div>
+
+        <!-- VIEW 4: ITERATIVE QUESTION BUILDER -->
+        <div id="view-step3" class="view-step hidden glass-card rounded-3xl p-6 md:p-8 shadow-xl border border-slate-100">
+            <div class="mb-6 flex items-center justify-between border-b pb-4">
+                <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">الخطوة 3 من 3</span>
+                <span id="questionProgressText" class="text-indigo-600 font-bold text-sm">السؤال 1 من 5</span>
+            </div>
+
+            <h2 id="builderTitle" class="text-2xl font-bold mb-6 text-slate-900">اكتب السؤال الأول</h2>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-semibold mb-2 text-slate-700">اكتب نص السؤال:</label>
+                    <input type="text" id="qText" placeholder="مثال: ما هي عاصمة جمهورية مصر العربية؟" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-2 text-slate-700">الإجابة الأولى:</label>
+                        <input type="text" id="qOpt1" placeholder="الإجابة 1" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-2 text-slate-700">الإجابة الثانية:</label>
+                        <input type="text" id="qOpt2" placeholder="الإجابة 2" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-100">
+                    <label class="block text-sm font-bold text-indigo-900 mb-3">حدّد أياً من الإجابتين هي الإجابة الصحيحة:</label>
+                    <div class="flex items-center space-x-6 space-x-reverse">
+                        <label class="flex items-center cursor-pointer bg-white px-4 py-2.5 rounded-xl border border-slate-200 space-x-2 space-x-reverse font-semibold text-slate-700 hover:border-indigo-500 transition">
+                            <input type="radio" name="correctAnswer" value="1" checked class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                            <span>الإجابة الأولى (1)</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer bg-white px-4 py-2.5 rounded-xl border border-slate-200 space-x-2 space-x-reverse font-semibold text-slate-700 hover:border-indigo-500 transition">
+                            <input type="radio" name="correctAnswer" value="2" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                            <span>الإجابة الثانية (2)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-between items-center">
+                <button onclick="prevQuestion()" id="btnPrevQ" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 font-semibold disabled:opacity-50">السؤال السابق</button>
+                <button onclick="nextQuestion()" id="btnNextQ" class="custom-gradient text-white px-8 py-2.5 rounded-xl font-bold shadow hover:opacity-95">السؤال التالي <i class="fa-solid fa-arrow-left mr-2"></i></button>
+            </div>
+        </div>
+
+        <!-- VIEW 5: SUCCESS & SHAREABLE LINK -->
+        <div id="view-done" class="view-step hidden glass-card rounded-3xl p-8 shadow-xl text-center border border-slate-100">
+            <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 animate-bounce">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h2 class="text-3xl font-extrabold text-slate-900 mb-2">تم نشر الاختبار بنجاح!</h2>
+            <p class="text-slate-600 mb-6">تم حفظ اختبارك في المنصة وبات متاحاً للجميع الآن.</p>
+
+            <div class="bg-slate-100 p-4 rounded-2xl max-w-md mx-auto mb-6 flex items-center justify-between border border-slate-200">
+                <input type="text" id="shareUrlInput" readonly class="bg-transparent border-none w-full text-xs md:text-sm text-slate-700 font-mono outline-none">
+                <button onclick="copyShareUrl()" class="custom-gradient text-white text-xs px-4 py-2 rounded-xl font-bold whitespace-nowrap ml-2 hover:opacity-90">
+                    <i class="fa-solid fa-copy ml-1"></i> نسخ الرابط
+                </button>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-4">
+                <button onclick="playCurrentQuiz()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow transition">
+                    <i class="fa-solid fa-play ml-1"></i> تجربة الاختبار الآن
+                </button>
+                <button onclick="navigateTo('feed')" class="px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold shadow transition">
+                    <i class="fa-solid fa-border-all ml-1"></i> العودة للاختبارات العامة
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW 6: PUBLIC QUIZZES FEED & SEARCH -->
+        <div id="view-feed" class="view-step">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">جميع الاختبارات العامة</h2>
+                    <p class="text-sm text-slate-500">تصفح واختبر معلوماتك في الاختبارات التي أنشأها المستخدمون</p>
+                </div>
+                <button onclick="startCreateFlow()" class="custom-gradient text-white font-bold px-5 py-2.5 rounded-xl shadow hover:opacity-95 text-sm transition">
+                    <i class="fa-solid fa-plus ml-1"></i> إنشاء اختبار جديد
+                </button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 mb-8 flex items-center space-x-3 space-x-reverse">
+                <i class="fa-solid fa-magnifying-glass text-slate-400 mr-2"></i>
+                <input type="text" id="searchInput" oninput="filterQuizzes()" placeholder="ابحث باسم الاختبار أو اسم الصانع..." class="w-full bg-transparent outline-none text-slate-700 font-semibold text-sm">
+            </div>
+
+            <!-- Quiz Cards List -->
+            <div id="quizGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Loading State -->
+                <div class="col-span-full text-center py-12 text-slate-400">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-500 mb-3 block"></i>
+                    <p>جاري تحميل الاختبارات من قاعدة البيانات...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 7: PLAY QUIZ SCREEN -->
+        <div id="view-play" class="view-step hidden glass-card rounded-3xl p-6 md:p-8 shadow-xl border border-slate-100">
+            <!-- Player Name Prompt overlay -->
+            <div id="playerStartModal" class="text-center py-8">
+                <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4">
+                    <i class="fa-solid fa-gamepad"></i>
+                </div>
+                <h2 id="playQuizTitle" class="text-2xl font-bold text-slate-900 mb-1">اسم الاختبار</h2>
+                <p id="playQuizAuthor" class="text-sm text-slate-500 mb-6">بواسطة: ...</p>
+
+                <div class="max-w-sm mx-auto mb-6">
+                    <label class="block text-sm font-semibold mb-2 text-slate-700 text-right">أدخل اسمك لبدء اللعب:</label>
+                    <input type="text" id="playerNameInput" placeholder="اسم اللاعب" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+
+                <button onclick="startPlaying()" class="custom-gradient text-white px-8 py-3 rounded-xl font-bold shadow text-lg hover:opacity-95">
+                    بدء الاختبار <i class="fa-solid fa-play mr-2"></i>
+                </button>
+            </div>
+
+            <!-- Question Screen -->
+            <div id="playGameArea" class="hidden space-y-6">
+                <div class="flex justify-between items-center border-b pb-4">
+                    <span id="playQuizHeader" class="font-bold text-slate-700 text-sm">عنوان الاختبار</span>
+                    <span id="playProgress" class="bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1 rounded-full">1 / 5</span>
+                </div>
+
+                <h3 id="playQuestionText" class="text-xl md:text-2xl font-bold text-slate-800 leading-snug">السؤال هنا؟</h3>
+
+                <div class="space-y-3 pt-2">
+                    <button onclick="submitAnswer(1)" id="optBtn1" class="w-full text-right p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition font-bold text-slate-700 flex items-center justify-between group">
+                        <span id="optText1">الإجابة الأولى</span>
+                        <i class="fa-regular fa-circle text-slate-300 group-hover:text-indigo-500"></i>
+                    </button>
+                    <button onclick="submitAnswer(2)" id="optBtn2" class="w-full text-right p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition font-bold text-slate-700 flex items-center justify-between group">
+                        <span id="optText2">الإجابة الثانية</span>
+                        <i class="fa-regular fa-circle text-slate-300 group-hover:text-indigo-500"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quiz Result Screen -->
+            <div id="playResultArea" class="hidden text-center py-8">
+                <div id="resultBadge" class="w-24 h-24 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 font-black">
+                    🏆
+                </div>
+                <h2 id="resultName" class="text-2xl font-extrabold text-slate-900 mb-1">أحسنت يا بطل!</h2>
+                <p id="resultText" class="text-slate-600 mb-6 text-lg">لقد أجبت على <strong>3</strong> إجابة صحيحة من أصل <strong>5</strong> أسئلة.</p>
+
+                <div class="bg-slate-50 p-4 rounded-2xl max-w-sm mx-auto mb-8 border border-slate-200 text-right space-y-2 text-sm">
+                    <div class="flex justify-between text-emerald-600 font-bold">
+                        <span>الإجابات الصحيحة:</span>
+                        <span id="correctCount">0</span>
+                    </div>
+                    <div class="flex justify-between text-rose-600 font-bold">
+                        <span>الإجابات الخاطئة:</span>
+                        <span id="wrongCount">0</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-center space-x-4 space-x-reverse">
+                    <button onclick="navigateTo('feed')" class="px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow">
+                        الرئيسية
+                    </button>
+                    <button onclick="restartQuiz()" class="px-6 py-3 custom-gradient text-white font-bold rounded-xl shadow">
+                        إعادة الاختبار
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 text-center text-xs">
+        <p>© 2026 منصة الاختبارات التفاعلية - جميع الحقوق محفوظة</p>
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration Setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'quiz-creator-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyDummyKeyForTemplateCheckOnly",
+            authDomain: "dummy-app.firebaseapp.com",
+            projectId: "dummy-app",
+            storageBucket: "dummy-app.appspot.com",
+            messagingSenderId: "000000000000",
+            appId: "1:000000000000:web:000000000000"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // App Global State
+        let currentUser = null;
+        let allQuizzes = [];
+        let createdQuizId = null;
+
+        // Quiz Builder State
+        let newQuiz = {
+            authorName: '',
+            title: '',
+            questionCount: 3,
+            questions: [] // Array of { question, opt1, opt2, correct }
+        };
+        let currentQuestionIdx = 0;
+
+        // Playing Quiz State
+        let activeQuiz = null;
+        let activePlayerName = '';
+        let activePlayQuestionIdx = 0;
+        let playScore = 0;
+
+        // UI View Navigation
+        window.navigateTo = function(viewId) {
+            document.querySelectorAll('.view-step').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById(`view-${viewId}`);
+            if (target) target.classList.remove('hidden');
+
+            if (viewId === 'feed') {
+                loadPublicQuizzes();
+            }
+        };
+
+        // Toast Helper
+        window.showToast = function(msg, icon = 'fa-circle-info') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = msg;
+            document.getElementById('toastIcon').className = `fa-solid ${icon} text-indigo-400`;
+            toast.classList.remove('opacity-0', 'translate-y-20');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-20');
+            }, 3000);
+        };
+
+        // Authentication Handlers
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.warn("Auth initial state, falling back to anonymous", err);
+                try { await signInAnonymously(auth); } catch(e){}
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                document.getElementById('userBadge').classList.remove('hidden');
+                document.getElementById('userBadge').classList.add('flex');
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('navUserName').innerText = user.displayName || (user.isAnonymous ? "زائر" : "مستخدم");
+            }
+        });
+
+        window.handleGoogleSignIn = async function() {
+            try {
+                const provider = new GoogleAuthProvider();
+                await signInWithPopup(auth, provider);
+                showToast("تم تسجيل الدخول بنجاح!", "fa-circle-check");
+            } catch (error) {
+                showToast("حدث خطأ أثناء تسجيل الدخول بـ Google", "fa-circle-exclamation");
+            }
+        };
+
+        window.handleAnonymousSignIn = async function() {
+            try {
+                await signInAnonymously(auth);
+                showToast("تم الدخول كزائر مؤقت", "fa-user");
+                document.getElementById('loginOverlay').classList.add('hidden');
+            } catch (error) {
+                showToast("فشل الدخول السريع", "fa-circle-exclamation");
+            }
+        };
+
+        // --- QUIZ CREATION FLOW ---
+        window.startCreateFlow = function() {
+            if (!currentUser) {
+                document.getElementById('loginOverlay').classList.remove('hidden');
+                return;
+            }
+            navigateTo('welcome');
+        };
+
+        window.startWizard = function() {
+            navigateTo('step1');
+        };
+
+        window.nextToStep2 = function() {
+            const author = document.getElementById('inputAuthorName').value.trim();
+            const title = document.getElementById('inputQuizTitle').value.trim();
+
+            if (!author || !title) {
+                showToast("يرجى كتابة اسمك واسم الاختبار أولاً", "fa-triangle-exclamation");
+                return;
+            }
+
+            newQuiz.authorName = author;
+            newQuiz.title = title;
+            navigateTo('step2');
+        };
+
+        window.setQuestionCount = function(count) {
+            newQuiz.questionCount = parseInt(count);
+            document.getElementById('customCountDiv').classList.add('hidden');
+            showToast(`تم اختيار ${count} أسئلة`, "fa-check");
+        };
+
+        window.showCustomCountInput = function() {
+            document.getElementById('customCountDiv').classList.remove('hidden');
+        };
+
+        window.startQuestionsBuilder = function() {
+            const customDiv = document.getElementById('customCountDiv');
+            if (!customDiv.classList.contains('hidden')) {
+                const val = parseInt(document.getElementById('inputCustomCount').value);
+                if (val > 0 && val <= 20) {
+                    newQuiz.questionCount = val;
+                } else {
+                    showToast("يرجى أدخال عدد مناسب بين 1 و 20", "fa-triangle-exclamation");
+                    return;
+                }
+            }
+
+            newQuiz.questions = Array.from({ length: newQuiz.questionCount }, () => ({
+                question: '',
+                opt1: '',
+                opt2: '',
+                correct: '1'
+            }));
+
+            currentQuestionIdx = 0;
+            renderQuestionBuilder();
+            navigateTo('step3');
+        };
+
+        function renderQuestionBuilder() {
+            document.getElementById('questionProgressText').innerText = `السؤال ${currentQuestionIdx + 1} من ${newQuiz.questionCount}`;
+            document.getElementById('builderTitle').innerText = `اكتب السؤال رقم (${currentQuestionIdx + 1})`;
+
+            const q = newQuiz.questions[currentQuestionIdx];
+            document.getElementById('qText').value = q.question || '';
+            document.getElementById('qOpt1').value = q.opt1 || '';
+            document.getElementById('qOpt2').value = q.opt2 || '';
+
+            const radios = document.getElementsByName('correctAnswer');
+            radios[0].checked = (q.correct === '1');
+            radios[1].checked = (q.correct === '2');
+
+            document.getElementById('btnPrevQ').disabled = (currentQuestionIdx === 0);
+            
+            if (currentQuestionIdx === newQuiz.questionCount - 1) {
+                document.getElementById('btnNextQ').innerHTML = 'حفظ ونشر الاختبار <i class="fa-solid fa-cloud-arrow-up mr-2"></i>';
+            } else {
+                document.getElementById('btnNextQ').innerHTML = 'السؤال التالي <i class="fa-solid fa-arrow-left mr-2"></i>';
+            }
+        }
+
+        function saveCurrentQuestionData() {
+            const q = newQuiz.questions[currentQuestionIdx];
+            q.question = document.getElementById('qText').value.trim();
+            q.opt1 = document.getElementById('qOpt1').value.trim();
+            q.opt2 = document.getElementById('qOpt2').value.trim();
+            
+            const radios = document.getElementsByName('correctAnswer');
+            q.correct = radios[0].checked ? '1' : '2';
+        }
+
+        window.prevQuestion = function() {
+            if (currentQuestionIdx > 0) {
+                saveCurrentQuestionData();
+                currentQuestionIdx--;
+                renderQuestionBuilder();
+            }
+        };
+
+        window.nextQuestion = async function() {
+            saveCurrentQuestionData();
+
+            const q = newQuiz.questions[currentQuestionIdx];
+            if (!q.question || !q.opt1 || !q.opt2) {
+                showToast("يرجى ملء جميع الحقول والإجابات لهذا السؤال", "fa-circle-exclamation");
+                return;
+            }
+
+            if (currentQuestionIdx < newQuiz.questionCount - 1) {
+                currentQuestionIdx++;
+                renderQuestionBuilder();
+            } else {
+                // Save to Firestore
+                await saveQuizToFirebase();
+            }
+        };
+
+        async function saveQuizToFirebase() {
+            if (!currentUser) {
+                showToast("يجب تسجيل الدخول أولاً", "fa-lock");
+                return;
+            }
+
+            showToast("جاري حفظ الاختبار...", "fa-spinner");
+
+            try {
+                // MANDATORY RULE: Public path /artifacts/{appId}/public/data/{collectionName}
+                const quizzesRef = collection(db, 'artifacts', appId, 'public', 'data', 'quizzes');
+                const docRef = await addDoc(quizzesRef, {
+                    authorName: newQuiz.authorName,
+                    title: newQuiz.title,
+                    questions: newQuiz.questions,
+                    createdAt: new Date().toISOString(),
+                    creatorUid: currentUser.uid
+                });
+
+                createdQuizId = docRef.id;
+                
+                // Show completion
+                const shareUrl = window.location.origin + window.location.pathname + '?quizId=' + createdQuizId;
+                document.getElementById('shareUrlInput').value = shareUrl;
+
+                navigateTo('done');
+                showToast("تم حفظ ونشر الاختبار بنجاح!", "fa-circle-check");
+            } catch (err) {
+                console.error("Error saving quiz: ", err);
+                showToast("حدث خطأ أثناء حفظ الاختبار في Firestore", "fa-triangle-exclamation");
+            }
+        }
+
+        window.copyShareUrl = function() {
+            const input = document.getElementById('shareUrlInput');
+            input.select();
+            document.execCommand('copy');
+            showToast("تم نسخ الرابط إلى الحافظة!", "fa-clipboard-check");
+        };
+
+        // --- PUBLIC QUIZZES & SEARCH ---
+        async function loadPublicQuizzes() {
+            const grid = document.getElementById('quizGrid');
+            grid.innerHTML = `
+                <div class="col-span-full text-center py-12 text-slate-400">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-500 mb-3 block"></i>
+                    <p>جاري تحميل الاختبارات من قاعدة البيانات...</p>
+                </div>
+            `;
+
+            try {
+                // MANDATORY RULE: Fetch simple collection without compound filters
+                const quizzesRef = collection(db, 'artifacts', appId, 'public', 'data', 'quizzes');
+                const querySnapshot = await getDocs(quizzesRef);
+                
+                allQuizzes = [];
+                querySnapshot.forEach((doc) => {
+                    allQuizzes.push({ id: doc.id, ...doc.data() });
+                });
+
+                renderQuizzesGrid(allQuizzes);
+            } catch (err) {
+                console.error("Error loading quizzes:", err);
+                grid.innerHTML = `<div class="col-span-full text-center text-rose-500 py-8">تعذر تحميل الاختبارات. حاول مرة أخرى.</div>`;
+            }
+        }
+
+        function renderQuizzesGrid(list) {
+            const grid = document.getElementById('quizGrid');
+            if (list.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-slate-400">
+                        <i class="fa-regular fa-folder-open text-4xl mb-2 block"></i>
+                        <p>لا توجد اختبارات متاحة حالياً. كن أول من ينشئ اختباراً!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = list.map(q => `
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="bg-indigo-50 text-indigo-600 text-xs font-bold px-3 py-1 rounded-full">
+                                ${q.questions ? q.questions.length : 0} أسئلة
+                            </span>
+                            <span class="text-xs text-slate-400">
+                                <i class="fa-regular fa-user ml-1"></i> ${escapeHtml(q.authorName || 'مجهول')}
+                            </span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">${escapeHtml(q.title || 'بدون عنوان')}</h3>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <button onclick="openQuizPlay('${q.id}')" class="custom-gradient text-white px-5 py-2 rounded-xl text-sm font-bold shadow hover:opacity-90">
+                            بدء التحدي <i class="fa-solid fa-play mr-1"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.filterQuizzes = function() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const filtered = allQuizzes.filter(q => 
+                (q.title && q.title.toLowerCase().includes(query)) ||
+                (q.authorName && q.authorName.toLowerCase().includes(query))
+            );
+            renderQuizzesGrid(filtered);
+        };
+
+        // --- PLAY QUIZ LOGIC ---
+        window.openQuizPlay = async function(quizId) {
+            let quiz = allQuizzes.find(q => q.id === quizId);
+            
+            if (!quiz) {
+                // Fetch individually if direct URL access
+                showToast("جاري فتح الاختبار...", "fa-spinner");
+                try {
+                    const quizDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', quizId));
+                    if (quizDoc.exists()) {
+                        quiz = { id: quizDoc.id, ...quizDoc.data() };
+                    }
+                } catch(e) {}
+            }
+
+            if (!quiz) {
+                showToast("عفواً، هذا الاختبار غير موجود!", "fa-circle-xmark");
+                return;
+            }
+
+            activeQuiz = quiz;
+            document.getElementById('playQuizTitle').innerText = quiz.title;
+            document.getElementById('playQuizAuthor').innerText = `بواسطة: ${quiz.authorName}`;
+            
+            document.getElementById('playerStartModal').classList.remove('hidden');
+            document.getElementById('playGameArea').classList.add('hidden');
+            document.getElementById('playResultArea').classList.add('hidden');
+
+            navigateTo('play');
+        };
+
+        window.playCurrentQuiz = function() {
+            if (createdQuizId) {
+                openQuizPlay(createdQuizId);
+            }
+        };
+
+        window.startPlaying = function() {
+            const name = document.getElementById('playerNameInput').value.trim();
+            if (!name) {
+                showToast("يرجى إدخال اسمك لبدء الاختبار", "fa-triangle-exclamation");
+                return;
+            }
+
+            activePlayerName = name;
+            activePlayQuestionIdx = 0;
+            playScore = 0;
+
+            document.getElementById('playerStartModal').classList.add('hidden');
+            document.getElementById('playGameArea').classList.remove('hidden');
+
+            renderPlayQuestion();
+        };
+
+        function renderPlayQuestion() {
+            const total = activeQuiz.questions.length;
+            const q = activeQuiz.questions[activePlayQuestionIdx];
+
+            document.getElementById('playQuizHeader').innerText = activeQuiz.title;
+            document.getElementById('playProgress').innerText = `${activePlayQuestionIdx + 1} / ${total}`;
+            document.getElementById('playQuestionText').innerText = q.question;
+
+            document.getElementById('optText1').innerText = q.opt1;
+            document.getElementById('optText2').innerText = q.opt2;
+        }
+
+        window.submitAnswer = function(selectedOption) {
+            const q = activeQuiz.questions[activePlayQuestionIdx];
+            if (String(selectedOption) === String(q.correct)) {
+                playScore++;
+            }
+
+            activePlayQuestionIdx++;
+
+            if (activePlayQuestionIdx < activeQuiz.questions.length) {
+                renderPlayQuestion();
+            } else {
+                showQuizResult();
+            }
+        };
+
+        function showQuizResult() {
+            document.getElementById('playGameArea').classList.add('hidden');
+            document.getElementById('playResultArea').classList.remove('hidden');
+
+            const total = activeQuiz.questions.length;
+            const wrong = total - playScore;
+
+            document.getElementById('resultName').innerText = `أحسنت يا ${activePlayerName}!`;
+            document.getElementById('resultText').innerHTML = `لقد أجبت على <strong>${playScore}</strong> إجابة صحيحة من أصل <strong>${total}</strong> أسئلة.`;
+            document.getElementById('correctCount').innerText = `${playScore} أسئلة`;
+            document.getElementById('wrongCount').innerText = `${wrong} أسئلة`;
+
+            const percent = (playScore / total) * 100;
+            const badge = document.getElementById('resultBadge');
+            if (percent >= 80) {
+                badge.innerText = '🏆';
+                badge.className = "w-24 h-24 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 bg-emerald-100";
+            } else if (percent >= 50) {
+                badge.innerText = '👏';
+                badge.className = "w-24 h-24 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 bg-amber-100";
+            } else {
+                badge.innerText = '💪';
+                badge.className = "w-24 h-24 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 bg-rose-100";
+            }
+        }
+
+        window.restartQuiz = function() {
+            activePlayQuestionIdx = 0;
+            playScore = 0;
+            document.getElementById('playResultArea').classList.add('hidden');
+            document.getElementById('playGameArea').classList.remove('hidden');
+            renderPlayQuestion();
+        };
+
+        // Utility: Escape HTML
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Initialize App on Load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initAuth();
+
+            // Check URL parameters for direct link to quiz
+            const urlParams = new URLSearchParams(window.location.search);
+            const quizIdParam = urlParams.get('quizId');
+
+            if (quizIdParam) {
+                openQuizPlay(quizIdParam);
+            } else {
+                navigateTo('feed');
+            }
+        });
+    </script>
+</body>
+</html>
